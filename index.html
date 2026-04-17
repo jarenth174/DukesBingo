@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Duke's Brewhouse Bingo</title>
+<style>
+  :root {
+    --bg: #0d0f1a;
+    --panel: #12162a;
+    --panel2: #181d33;
+    --gold: #b91c2e;
+    --gold-light: #d92030;
+    --gold-dim: #7a1020;
+    --amber: #1a2a7a;
+    --amber-light: #2236a0;
+    --cream: #f0f0f0;
+    --cream-dim: #a0a8c0;
+    --border: #1e2440;
+    --border-light: #2a3560;
+    --cell-bg: #101420;
+    --cell-marked: #8b1c1c;
+    --cell-marked-border: #d92030;
+    --text-dim: #6a78a0;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    background: var(--bg);
+    color: var(--cream);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(185,28,46,0.18) 0%, transparent 60%),
+      radial-gradient(ellipse at 50% 100%, rgba(26,42,122,0.18) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app { position: relative; z-index: 1; }
+
+  header {
+    text-align: center;
+    padding: 18px 16px 0;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(26,21,8,0.95) 0%, rgba(17,16,8,0.6) 100%);
+  }
+
+  .logo-wrap { display: flex; justify-content: center; margin-bottom: 8px; }
+
+  .logo-img {
+    height: 64px;
+    width: auto;
+    filter: drop-shadow(0 2px 10px rgba(200,150,12,0.4));
+  }
+
+  .logo-fallback {
+    font-family: Impact, 'Arial Narrow', sans-serif;
+    font-size: 1.4rem;
+    letter-spacing: 0.12em;
+    color: var(--gold-light);
+    text-transform: uppercase;
+    display: none;
+    padding: 8px 0;
+  }
+
+  .game-title {
+    font-family: Impact, 'Arial Narrow', sans-serif;
+    font-weight: 900;
+    font-size: clamp(2.2rem, 10vw, 3.2rem);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #d92030;
+    text-shadow: 3px 3px 0px #7a1020, 0 0 20px rgba(217,32,48,0.4), 0 2px 4px rgba(0,0,0,0.8);
+    line-height: 1;
+    margin-bottom: 0;
+  }
+
+  .game-subtitle {
+    font-family: Arial, sans-serif;
+    font-weight: 900;
+    font-size: clamp(0.7rem, 3vw, 1rem);
+    letter-spacing: 0.55em;
+    text-transform: uppercase;
+    color: #ffffff;
+    background: #1a2a7a;
+    display: inline-block;
+    padding: 3px 16px 3px 20px;
+    margin: 4px 0 6px;
+  }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 24px 10px;
+    justify-content: center;
+  }
+
+  .divider-line { flex: 1; max-width: 80px; height: 1px; background: linear-gradient(90deg, transparent, #7a1020); }
+  .divider-line.r { background: linear-gradient(90deg, #7a1020, transparent); }
+
+  .tagline {
+    font-size: 0.68rem;
+    color: var(--text-dim);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    padding-bottom: 14px;
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+  }
+
+  .tabs {
+    display: flex;
+    padding: 12px 16px;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  .tab {
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    font-size: 0.82rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 9px 20px;
+    border: 1.5px solid var(--border-light);
+    background: var(--panel);
+    color: var(--text-dim);
+    cursor: pointer;
+    flex: 1;
+  }
+
+  .tab:first-child { border-radius: 6px 0 0 6px; }
+  .tab:last-child { border-radius: 0 6px 6px 0; border-left: none; }
+  .tab.active { background: #d92030; border-color: #d92030; color: #fff; }
+
+  .view { display: none; padding: 0 14px 32px; max-width: 480px; margin: 0 auto; }
+  .view.active { display: block; }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .card-label {
+    font-family: Arial, sans-serif;
+    font-size: 0.95rem;
+    font-weight: bold;
+    letter-spacing: 0.1em;
+    color: var(--cream);
+    text-transform: uppercase;
+  }
+
+  .card-label span {
+    display: block;
+    font-size: 0.66rem;
+    font-weight: normal;
+    color: var(--text-dim);
+    letter-spacing: 0.12em;
+    margin-top: 2px;
+  }
+
+  .btn {
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 9px 16px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+  }
+
+  .btn-gold { background: linear-gradient(135deg, #d92030, #b91c2e); color: #fff; box-shadow: 0 2px 10px rgba(185,28,46,0.4); }
+  .btn-ghost { background: var(--panel2); color: var(--cream-dim); border: 1.5px solid var(--border-light); }
+  .btn-amber { background: linear-gradient(135deg, #2236a0, #1a2a7a); color: white; }
+
+  .progress-bar { height: 3px; background: var(--border); border-radius: 100px; margin-bottom: 10px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, #1a2a7a, #d92030); border-radius: 100px; transition: width 0.3s; }
+
+  .marked-count {
+    text-align: center;
+    font-size: 0.68rem;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+    font-weight: bold;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-family: Arial, sans-serif;
+  }
+
+  .bingo-letters {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 3px;
+    margin-bottom: 3px;
+  }
+
+  .bingo-letter {
+    font-family: Impact, 'Arial Narrow', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 900;
+    text-align: center;
+    padding: 5px 0;
+    color: #ffffff;
+    letter-spacing: 0.05em;
+    background: linear-gradient(180deg, #1a2a7a, #12162a);
+    border-radius: 4px 4px 0 0;
+    border: 1px solid #2a3560;
+    border-bottom: none;
+  }
+
+  .bingo-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 3px;
+  }
+
+  .bingo-cell {
+    background: var(--cell-bg);
+    border: 1.5px solid var(--border);
+    border-radius: 4px;
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: clamp(0.46rem, 2.2vw, 0.64rem);
+    font-weight: bold;
+    font-family: Arial, sans-serif;
+    padding: 4px;
+    cursor: pointer;
+    line-height: 1.25;
+    word-break: break-word;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    color: var(--cream);
+    position: relative;
+  }
+
+  .bingo-cell:active { opacity: 0.75; }
+
+  .bingo-cell.marked { background: var(--cell-marked); border-color: var(--cell-marked-border); }
+
+  .bingo-cell.free-space {
+    background: linear-gradient(135deg, #d92030, #1a2a7a);
+    border-color: #ffffff;
+    color: #fff;
+    font-family: Impact, 'Arial Narrow', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    cursor: default;
+    text-transform: uppercase;
+  }
+
+  .bingo-cell.winning {
+    background: #d92030 !important;
+    border-color: #fff !important;
+    color: #fff !important;
+  }
+
+  .card-actions { display: flex; gap: 8px; margin-top: 10px; }
+  .card-actions .btn { flex: 1; font-size: 0.74rem; padding: 9px 6px; }
+
+  .win-banner {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    background: rgba(10,8,2,0.88);
+  }
+  .win-banner.show { display: flex; }
+
+  .win-inner {
+    background: linear-gradient(155deg, #0d1530, #0a0d1a);
+    border: 2px solid #d92030;
+    border-radius: 16px;
+    padding: 36px 30px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(185,28,46,0.4);
+    max-width: 300px;
+    width: 90%;
+  }
+
+  .win-logo { height: 48px; margin-bottom: 12px; }
+  .win-logo-text {
+    font-family: Impact, 'Arial Narrow', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 0.12em;
+    color: var(--gold-light);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    display: none;
+  }
+
+  .win-text {
+    font-family: Impact, 'Arial Narrow', sans-serif;
+    font-size: 3rem;
+    font-weight: 900;
+    color: #d92030;
+    letter-spacing: 0.15em;
+    line-height: 1;
+  }
+
+  .win-sub {
+    font-size: 0.82rem;
+    color: var(--cream-dim);
+    margin: 8px 0 20px;
+    letter-spacing: 0.08em;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-family: Arial, sans-serif;
+  }
+
+  .win-close {
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 10px 28px;
+    border-radius: 4px;
+    border: 1.5px solid #d92030;
+    background: transparent;
+    color: #d92030;
+    font-size: 0.88rem;
+    cursor: pointer;
+  }
+
+  .editor-info {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+    line-height: 1.55;
+    padding: 10px 12px;
+    background: var(--panel2);
+    border-radius: 6px;
+    border-left: 3px solid #d92030;
+    font-family: Arial, sans-serif;
+  }
+
+  .phrase-count { font-weight: bold; color: #d92030; }
+
+  .phrase-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 10px;
+    max-height: 330px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+
+  .phrase-row { display: flex; gap: 6px; align-items: center; }
+
+  .phrase-input {
+    flex: 1;
+    background: var(--cell-bg);
+    border: 1.5px solid var(--border);
+    border-radius: 4px;
+    padding: 7px 10px;
+    color: var(--cream);
+    font-family: Arial, sans-serif;
+    font-size: 0.82rem;
+    outline: none;
+  }
+
+  .del-btn {
+    background: transparent;
+    border: 1.5px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .add-phrase-row { display: flex; gap: 8px; margin-bottom: 10px; }
+
+  .new-phrase-input {
+    flex: 1;
+    background: var(--cell-bg);
+    border: 1.5px dashed var(--gold-dim);
+    border-radius: 4px;
+    padding: 8px 10px;
+    color: var(--cream);
+    font-family: Arial, sans-serif;
+    font-size: 0.82rem;
+    outline: none;
+  }
+  .new-phrase-input::placeholder { color: var(--text-dim); }
+
+  .editor-actions { display: flex; gap: 8px; }
+  .editor-actions .btn { flex: 1; padding: 10px; }
+
+  .warning {
+    background: rgba(139,26,26,0.15);
+    border: 1.5px solid rgba(192,32,32,0.4);
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-size: 0.76rem;
+    color: #e06060;
+    margin-bottom: 10px;
+    display: none;
+    font-weight: bold;
+    font-family: Arial, sans-serif;
+  }
+  .warning.show { display: block; }
+
+  .section-label {
+    font-family: Arial, sans-serif;
+    font-size: 0.68rem;
+    font-weight: bold;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+    margin-top: 14px;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="divider">
+      <div class="divider-line"></div>
+      <div class="divider-line r"></div>
+    </div>
+    <div class="tagline">Beers &middot; Judgement &middot; Friends</div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" id="tab-play" onclick="switchTab('play')">&#127919; My Card</button>
+    <button class="tab" id="tab-editor" onclick="switchTab('editor')">&#9999; Edit Phrases</button>
+  </div>
+
+  <div class="view active" id="view-play">
+    <div class="card-header">
+      <div class="card-label">
+        Your Card
+        <span id="card-seed-display">Card #&mdash;</span>
+      </div>
+      <button class="btn btn-gold" onclick="newCard()">New Card</button>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progress-fill" style="width:4%"></div>
+    </div>
+    <div class="marked-count" id="marked-count">1 / 25 marked</div>
+    <div class="bingo-letters">
+      <div class="bingo-letter">D</div>
+      <div class="bingo-letter">U</div>
+      <div class="bingo-letter">K</div>
+      <div class="bingo-letter">E</div>
+      <div class="bingo-letter">S</div>
+    </div>
+    <div class="bingo-grid" id="bingo-grid"></div>
+    <div class="card-actions">
+      <button class="btn btn-ghost" onclick="resetMarks()">Reset</button>
+    </div>
+  </div>
+
+  <div class="view" id="view-editor">
+    <div class="editor-info">
+      You have <span class="phrase-count" id="phrase-count">0</span> phrases.
+      A 5x5 card needs at least <strong>24</strong> (center is FREE).
+    </div>
+    <div class="warning" id="phrase-warning">Add at least 24 phrases to generate a card.</div>
+    <div class="section-label">Phrase Bank</div>
+    <div class="phrase-list" id="phrase-list"></div>
+    <div class="add-phrase-row">
+      <input class="new-phrase-input" id="new-phrase-input" placeholder="Add a new phrase..." maxlength="60">
+      <button class="btn btn-gold" onclick="addPhrase()">+ Add</button>
+    </div>
+    <div class="editor-actions">
+      <button class="btn btn-ghost" onclick="clearAll()">Clear All</button>
+      <button class="btn btn-amber" onclick="saveAndPlay()">Save &amp; Play</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="win-banner" id="win-banner">
+  <div class="win-inner">
+    <img class="win-logo" id="win-logo"
+      src="https://static.spotapps.co/website_images/ab_websites/112375_website/logo.png"
+      alt="Duke's Brewhouse">
+    <div class="win-logo-text" id="win-logo-text">DUKE'S BREWHOUSE</div>
+    <div class="win-text">BINGO!</div>
+    <div class="win-sub">Cheers &mdash; you got a line!</div>
+    <button class="win-close" onclick="winNewGame()">New Game</button>
+  </div>
+</div>
+
+<script>
+var phrases = [
+  "Superman Move","The Mayor","Train Kyle","Audio Kyle",
+  "The Entity","Cletus","Mouth","Super Bump",
+  "Yoder","Side Hustle","Seinfeld","Dog",
+  "Vaping","Rocky Top","Another Round","Last Call",
+  "Wings Ordered","Shot Called","Tab Reopened","Bad Decision",
+  "Late Arrival","Phone Down","Story Repeated","Bathroom Break",
+  "Karaoke Threat","Uber Called","Bar Tab Argument","Closing Time",
+  "Group Photo","Hangover Promised"
+];
+
+var currentCard = [];
+var marked = [];
+var cardSeed = 0;
+var wonAlready = false;
+
+document.getElementById('win-logo').onerror = function() {
+  this.style.display = 'none';
+  document.getElementById('win-logo-text').style.display = 'block';
+};
+document.getElementById('new-phrase-input').onkeydown = function(e) {
+  if (e.key === 'Enter') addPhrase();
+};
+
+function rng(seed) {
+  var s = seed | 0;
+  return function() {
+    s = (s + 0x6D2B79F5) | 0;
+    var t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function shuffle(arr, rand) {
+  var a = arr.slice(), i, j, tmp;
+  for (i = a.length - 1; i > 0; i--) {
+    j = Math.floor(rand() * (i + 1));
+    tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+  }
+  return a;
+}
+
+function generateCard(seed) {
+  var rand = rng(seed);
+  var sh = shuffle(phrases, rand);
+  var card = [], pi = 0;
+  for (var i = 0; i < 25; i++) {
+    card.push(i === 12 ? null : (sh[pi++] || '?'));
+  }
+  return card;
+}
+
+function newCard() {
+  if (phrases.length < 24) {
+    switchTab('editor');
+    document.getElementById('phrase-warning').classList.add('show');
+    return;
+  }
+  cardSeed = (Math.floor(Math.random() * 999998) + 1);
+  currentCard = generateCard(cardSeed);
+  marked = [];
+  for (var i = 0; i < 25; i++) marked.push(i === 12);
+  wonAlready = false;
+  renderCard();
+}
+
+function renderCard() {
+  var grid = document.getElementById('bingo-grid');
+  grid.innerHTML = '';
+  for (var i = 0; i < 25; i++) {
+    var cell = document.createElement('div');
+    cell.className = 'bingo-cell';
+    if (i === 12) {
+      cell.classList.add('free-space', 'marked');
+      cell.innerHTML = '&#9733; FREE &#9733;';
+    } else {
+      cell.textContent = currentCard[i] || '';
+      if (marked[i]) cell.classList.add('marked');
+      (function(idx) { cell.onclick = function() { toggleCell(idx); }; })(i);
+    }
+    grid.appendChild(cell);
+  }
+  updateProgress();
+  document.getElementById('card-seed-display').textContent = 'Card #' + cardSeed;
+}
+
+function toggleCell(i) {
+  marked[i] = !marked[i];
+  var cells = document.getElementById('bingo-grid').children;
+  if (marked[i]) cells[i].classList.add('marked');
+  else cells[i].classList.remove('marked');
+  updateProgress();
+  checkWin();
+}
+
+function resetMarks() {
+  for (var i = 0; i < 25; i++) marked[i] = (i === 12);
+  wonAlready = false;
+  renderCard();
+}
+
+function updateProgress() {
+  var count = 0;
+  for (var i = 0; i < marked.length; i++) if (marked[i]) count++;
+  document.getElementById('progress-fill').style.width = Math.round(count / 25 * 100) + '%';
+  document.getElementById('marked-count').textContent = count + ' / 25 marked';
+}
+
+var WIN_LINES = [
+  [0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14],[15,16,17,18,19],[20,21,22,23,24],
+  [0,5,10,15,20],[1,6,11,16,21],[2,7,12,17,22],[3,8,13,18,23],[4,9,14,19,24],
+  [0,6,12,18,24],[4,8,12,16,20]
+];
+
+function checkWin() {
+  if (wonAlready) return;
+  var cells = document.getElementById('bingo-grid').children;
+  for (var l = 0; l < WIN_LINES.length; l++) {
+    var line = WIN_LINES[l], win = true;
+    for (var k = 0; k < line.length; k++) if (!marked[line[k]]) { win = false; break; }
+    if (win) {
+      wonAlready = true;
+      for (var k = 0; k < line.length; k++) cells[line[k]].classList.add('winning');
+      setTimeout(function() { document.getElementById('win-banner').classList.add('show'); }, 300);
+      return;
+    }
+  }
+}
+
+function closeWin() { document.getElementById('win-banner').classList.remove('show'); }
+
+function winNewGame() {
+  document.getElementById('win-banner').classList.remove('show');
+  newCard();
+}
+
+function renderPhraseList() {
+  var list = document.getElementById('phrase-list');
+  list.innerHTML = '';
+  for (var i = 0; i < phrases.length; i++) {
+    (function(idx) {
+      var row = document.createElement('div');
+      row.className = 'phrase-row';
+      var inp = document.createElement('input');
+      inp.className = 'phrase-input';
+      inp.maxLength = 60;
+      inp.value = phrases[idx];
+      inp.onchange = function() { phrases[idx] = this.value; updatePhraseCount(); };
+      var del = document.createElement('button');
+      del.className = 'del-btn';
+      del.textContent = 'x';
+      del.onclick = function() { phrases.splice(idx, 1); renderPhraseList(); };
+      row.appendChild(inp);
+      row.appendChild(del);
+      list.appendChild(row);
+    })(i);
+  }
+  updatePhraseCount();
+}
+
+function updatePhraseCount() {
+  document.getElementById('phrase-count').textContent = phrases.length;
+  if (phrases.length >= 24) document.getElementById('phrase-warning').classList.remove('show');
+}
+
+function addPhrase() {
+  var input = document.getElementById('new-phrase-input');
+  var val = input.value.replace(/^\s+|\s+$/g, '');
+  if (!val) return;
+  phrases.push(val);
+  input.value = '';
+  renderPhraseList();
+}
+
+function clearAll() {
+  try { if (!confirm('Clear all phrases?')) return; } catch(e) {}
+  phrases = [];
+  renderPhraseList();
+}
+
+function saveAndPlay() {
+  if (phrases.length < 24) { document.getElementById('phrase-warning').classList.add('show'); return; }
+  switchTab('play');
+  newCard();
+}
+
+function switchTab(name) {
+  var isPlay = name === 'play';
+  document.getElementById('tab-play').classList.toggle('active', isPlay);
+  document.getElementById('tab-editor').classList.toggle('active', !isPlay);
+  document.getElementById('view-play').classList.toggle('active', isPlay);
+  document.getElementById('view-editor').classList.toggle('active', !isPlay);
+  if (!isPlay) renderPhraseList();
+}
+
+newCard();
+renderPhraseList();
+</script>
+</body>
+</html>
