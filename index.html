@@ -530,26 +530,19 @@
 
 <script>
 var phrases = [
-  "Superman Move","The Mayor","Train Kyle","Audio Kyle",
+  "Superman Move","The Mayor","Breakfast Old Fashioned","808",
   "The Entity","Cletus","Mouth","Super Bump",
   "Yoder","Jay Leno","Side Hustle","Seinfeld Reference",
-  "Dog","Vaping","Rocky Top","Punk Rock",
-  "Wilford Brimley","Sound Check","Missed Shot","Tanned Kramer",
-  "Stinky","Baby","Shots","Casting Couch","T. Steele"
+  "Lil' Bro","Vaping","Rocky Top","Punk Rock",
+  "Wilford Brimley","Mic Check, Mic Check","Missed Shot","Tanned Kramer",
+  "Stinky","Shots","Casting Couch","Baby Lincoln",
+  "Dick Gloves","Bail Bond","Bang Bang Shrimp","Broheim"
 ];
 
 var currentCard = [];
 var marked = [];
 var cardSeed = 0;
 var wonAlready = false;
-
-document.getElementById('win-logo').onerror = function() {
-  this.style.display = 'none';
-  document.getElementById('win-logo-text').style.display = 'block';
-};
-document.getElementById('new-phrase-input').onkeydown = function(e) {
-  if (e.key === 'Enter') addPhrase();
-};
 
 function rng(seed) {
   var s = seed | 0;
@@ -725,8 +718,34 @@ function switchTab(name) {
   if (!isPlay) renderPhraseList();
 }
 
-newCard();
-renderPhraseList();
+function initGame() {
+  try {
+    var winLogo = document.getElementById('win-logo');
+    if (winLogo) {
+      winLogo.onerror = function() {
+        this.style.display = 'none';
+        var txt = document.getElementById('win-logo-text');
+        if (txt) txt.style.display = 'block';
+      };
+    }
+    var newPhrase = document.getElementById('new-phrase-input');
+    if (newPhrase) {
+      newPhrase.onkeydown = function(e) {
+        if (e.key === 'Enter') addPhrase();
+      };
+    }
+    newCard();
+    renderPhraseList();
+  } catch(err) {
+    document.body.innerHTML = '<div style="padding:40px;color:#fff;font-family:Arial;text-align:center;background:#0d0f1a;min-height:100vh"><h2 style="color:#d92030">Loading error</h2><p>' + (err.message || err) + '</p><p style="color:#888;font-size:0.8rem">Try a hard refresh (pull down on mobile) or clear your browser cache.</p></div>';
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initGame);
+} else {
+  initGame();
+}
 </script>
 </body>
 </html>
